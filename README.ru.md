@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="happ-cli" width="800" />
+</p>
+
 # happ-cli
 
 [English](README.md) | **Русский**
