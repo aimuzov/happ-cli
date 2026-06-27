@@ -19,6 +19,7 @@ func Execute(ctx context.Context, version string) error {
 }
 
 func newRootCmd(version string) *cobra.Command {
+	var interactive bool
 	root := &cobra.Command{
 		Use:   "happ",
 		Short: "HAPP-compatible terminal VPN client",
@@ -28,7 +29,14 @@ func newRootCmd(version string) *cobra.Command {
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: false,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if interactive {
+				return runInteractive(cmd.Context())
+			}
+			return cmd.Help()
+		},
 	}
+	root.Flags().BoolVarP(&interactive, "interactive", "i", false, "interactively pick server and method, elevating via sudo as needed")
 	root.PersistentFlags().StringVar(&homeDir, "home", "", "config directory (default: per-user config dir + /happ-cli)")
 	root.AddCommand(
 		newSubCmd(),
@@ -40,14 +48,18 @@ func newRootCmd(version string) *cobra.Command {
 	return root
 }
 
+// storeDir resolves the config directory: the --home override, or the default.
+func storeDir() (string, error) {
+	if homeDir != "" {
+		return homeDir, nil
+	}
+	return store.DefaultDir()
+}
+
 func openStore() (*store.Store, error) {
-	dir := homeDir
-	if dir == "" {
-		d, err := store.DefaultDir()
-		if err != nil {
-			return nil, err
-		}
-		dir = d
+	dir, err := storeDir()
+	if err != nil {
+		return nil, err
 	}
 	return store.Open(dir)
 }

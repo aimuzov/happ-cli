@@ -27,7 +27,8 @@ func newConnectCmd() *cobra.Command {
 			"Modes:\n" +
 			"  proxy  local SOCKS5 + HTTP proxy on 127.0.0.1 (no root)\n" +
 			"  tun    system-wide VPN via a utun device (requires sudo, macOS)",
-		Args: cobra.MaximumNArgs(1),
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeServerSelector,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			st, err := openStore()
 			if err != nil {
@@ -62,10 +63,17 @@ func newConnectCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&mode, "mode", "m", "proxy", "connection mode: proxy or tun")
-	cmd.Flags().IntVar(&socksPort, "socks", 10808, "local SOCKS5 port")
-	cmd.Flags().IntVar(&httpPort, "http", 10809, "local HTTP proxy port (proxy mode)")
+	cmd.Flags().IntVar(&socksPort, "socks", defaultSocksPort, "local SOCKS5 port")
+	cmd.Flags().IntVar(&httpPort, "http", defaultHTTPPort, "local HTTP proxy port (proxy mode)")
 	cmd.Flags().StringVar(&subName, "sub", "", "subscription name (default: active)")
 	cmd.Flags().BoolVar(&systemProxy, "system-proxy", false, "set the macOS system SOCKS proxy (requires sudo, proxy mode)")
+	_ = cmd.RegisterFlagCompletionFunc("sub", completeSubFlag)
+	_ = cmd.RegisterFlagCompletionFunc("mode", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		return []cobra.Completion{
+			cobra.CompletionWithDesc("proxy", "local SOCKS5 + HTTP proxy (no root)"),
+			cobra.CompletionWithDesc("tun", "system-wide VPN via utun (sudo)"),
+		}, cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }
 
